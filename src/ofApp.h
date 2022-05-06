@@ -8,6 +8,9 @@
 
 #include "time.h"
 
+using namespace ofxCv;
+using namespace cv;
+
 class ofApp : public ofBaseApp {
 
 public:
@@ -29,15 +32,16 @@ public:
 
 	ofVideoGrabber webcam;
 
+	ofxPanel gui;
+
 	ofxCvColorImage image;
 	ofPixels pixel;
 
-	ofxPanel gui;
+	ContourFinder contour1;
+	ContourFinder contour2;
 
-	ofxCv::ContourFinder contour1;
-	cv::Point2f centerContour1;
-	ofxCv::ContourFinder contour2;
-	cv::Point2f centerContour2;
+	Point2f centerContour1;
+	Point2f centerContour2;
 
 	ofColor colorPick;
 	ofColor color1;
@@ -46,33 +50,32 @@ public:
 	ofParameter<float> hue1;
 	ofParameter<float> sat1;
 	ofParameter<float> val1;
-
 	ofParameter<float> hue2;
 	ofParameter<float> sat2;
 	ofParameter<float> val2;
 
-	int playerHeight;
-	int playerWidth;
-	int playerSpacing;
+	ofParameter<float> threshold1;
+	ofParameter<float> threshold2;
 
 	ofParameter<bool> toggleWebcam;
 	ofParameter<bool> toggleContour;
 	ofParameter<bool> toggleGui;
 
-	ofParameter<float> threshold1;
-	ofParameter<float> threshold2;
-	ofParameter<bool> trackHueSat;
-
-	int ballPosX;
-	float ballPosXf;
-	int ballPosY;
-	float ballPosYf;
-	int ballSize;
-	int ballSpeed;
-	float ballAngleX;
-	float ballAngleY;	// Winkel des Spielballvektors in Y-Richtung
-	int signY;			// Vorzeichen des Spielballvektors
-
+	// Player Dimensionen
+	int playerHeight;
+	int playerWidth;
+	int playerSpacing;
 	int posP1;
 	int posP2;
+
+	// Ball Dimensionen
+	int ballPosX;		// Ballposition x-Achse
+	float ballPosXf;	
+	int ballPosY;		// Ballposition y-Achse
+	float ballPosYf;	
+	int ballSize;		// Ballradius
+	int ballSpeed;		// Ballgeschwindigkeit
+	float ballAngleX;	// Winkel des Spielballvektors x-Achse
+	float ballAngleY;	// Winkel des Spielballvektors y-Achse
+	int signY;			// Vorzeichen des Spielballvektors y-Achse
 };

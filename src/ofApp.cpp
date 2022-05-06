@@ -1,6 +1,7 @@
 #include "ofApp.h"
 
 using namespace ofxCv;
+using namespace cv;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -23,8 +24,6 @@ void ofApp::setup() {
 	gui.add(toggleWebcam.set("Toggle webcam", true));
 	gui.add(toggleContour.set("Toggle contours", true));
 
-	//gui.add(trackHueSat.set("Track Hue/Saturation", true));
-
 	// Webcam Setup
 	webcam.listDevices();
 	webcam.setDeviceID(0);
@@ -36,29 +35,34 @@ void ofApp::setup() {
 	contour2.setMinAreaRadius(15);
 	contour2.setMaxAreaRadius(50);
 
-	//Startposition Spieler 1 & 2
+	// Startposition Spieler 1 & 2
 	posP1 = ofGetHeight() / 2 - playerHeight / 2;
 	posP2 = ofGetHeight() / 2 - playerHeight / 2;
 
-	//Spielergröße und Abstand zum Rand
+	// Spielergröße und Abstand zum Rand
 	playerHeight = 150;
 	playerWidth = 10;
 	playerSpacing = 10;
 
-	//Startposition Ball
+	// Startposition Ball
 	ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
 	ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
 
-	//Ballgröße
+	// Ballgröße
 	ballSize = 10;
 	ballSpeed = 10;
+
+	// Ballwinkel
 	ballAngleX = 1.0;
 	ballAngleY = 1.0;
+
+	// Vorzeichen y-Achse
 	signY = 1;
 
 	// Variablen zum Ein-/Ausblenden
 	toggleWebcam = true;
 	toggleContour = true;
+	toggleGui = true;
 
 	srand((unsigned)time(NULL));
 }
@@ -66,14 +70,13 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update() {
 	// Webcam Update
-	webcam.update();
+	//
+	webcam.update();					
 	webcam.getPixels().mirrorTo(pixel, false, true);
-
 	image = pixel;
 
-	//image = webcam.getPixels()
-
 	// Farberkennung und Positionierung von P1
+	//
 	color1.setHueAngle(hue1);
 	color1.setSaturation(sat1);
 	color1.setBrightness(val1);
@@ -81,6 +84,7 @@ void ofApp::update() {
 	contour1.setTargetColor(color1);
 	contour1.setThreshold(threshold1);
 	contour1.findContours(image);
+
 	for (int i = 0; i < contour1.size(); i++)
 	{
 		centerContour1 = contour1.getCenter(i);
@@ -98,6 +102,7 @@ void ofApp::update() {
 	}
 
 	// Farberkennung und Positionierung von P2
+	//
 	color2.setHueAngle(hue2);
 	color2.setSaturation(sat2);
 	color2.setBrightness(val2);
@@ -105,6 +110,7 @@ void ofApp::update() {
 	contour2.setTargetColor(color2);
 	contour2.setThreshold(threshold2);
 	contour2.findContours(image);
+
 	for (int i = 0; i < contour2.size(); i++)
 	{
 		centerContour2 = contour2.getCenter(i);
@@ -125,27 +131,28 @@ void ofApp::update() {
 	//
 	// Ball trifft auf einen Spieler
 	//
+	// Ball trifft auf Spieler 1
 	if ((ballPosX == (playerSpacing + playerWidth)) && (ballPosY >= posP1) && (ballPosY <= (posP1 + playerHeight)))
 	{
 		signY = -signY;
 		ballAngleY = signY * ((float)rand() / RAND_MAX);
 		ballAngleX = -ballAngleX;
 
-		ballSpeed = ballSpeed + 2;
+		ballSpeed = ballSpeed ++;
 	}
-	//
+	// Ball trifft auf Spieler 2
 	if ((ballPosX == (ofGetWidth() - playerSpacing - playerWidth - ballSize)) && (ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight)))
 	{
 		signY = -signY;
 		ballAngleY = signY * ((float)rand() / RAND_MAX);
 		ballAngleX = -ballAngleX;
 
-		ballSpeed = ballSpeed + 2;
+		ballSpeed = ballSpeed ++;
 	}
 	//
 	// Ball geht ins aus
 	//
-	// Spieler 1 hat verloren
+	// Spieler 1 GameOver
 	if ((ballPosX == (playerSpacing + playerWidth)) && !((ballPosY >= posP1) && (ballPosY <= (posP1 + playerHeight))))
 	{
 		// GameOver
@@ -154,10 +161,9 @@ void ofApp::update() {
 
 		ballSpeed = 10;
 	}
-	// Spieler 2 hat verloren
+	// Spieler 2 GameOver
 	if ((ballPosX == (ofGetWidth() - playerSpacing - playerWidth - ballSize)) && !((ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight))))
 	{
-		// Gameover
 		ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
 		ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
 
@@ -213,14 +219,15 @@ void ofApp::draw() {
 		image.draw(0, 0);
 	}
 
+	if (toggleGui)
+	{
+		gui.draw();
+	}
+
 	if (toggleContour)
 	{
 		contour1.draw();
 		contour2.draw();
-	}
-	if (toggleGui)
-	{
-		gui.draw();
 	}
 
 	ofSetColor(color1);
@@ -231,6 +238,7 @@ void ofApp::draw() {
 
 	ofSetColor(ofColor::white);
 	ofDrawRectangle(ballPosX, ballPosY, ballSize, ballSize);
+	//ofDrawCircle(ballPosX, ballPosY, ballSize);  // runder Ball
 }
 
 //--------------------------------------------------------------
@@ -244,14 +252,14 @@ void ofApp::keyReleased(int key) {
 	{
 		colorPick = image.getPixels().getColor(ofGetMouseX(), ofGetMouseY());
 		hue1 = colorPick.getHueAngle(),
-			sat1 = colorPick.getSaturation();
+		sat1 = colorPick.getSaturation();
 		val1 = colorPick.getBrightness();
 	}
 	if (key == '2')
 	{
 		colorPick = image.getPixels().getColor(ofGetMouseX(), ofGetMouseY());
 		hue2 = colorPick.getHueAngle(),
-			sat2 = colorPick.getSaturation();
+		sat2 = colorPick.getSaturation();
 		val2 = colorPick.getBrightness();
 	}
 	if (key == 'w')
