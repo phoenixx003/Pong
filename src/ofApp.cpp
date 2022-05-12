@@ -1,7 +1,8 @@
 #include "ofApp.h"
 
-using namespace ofxCv;
-using namespace cv;
+//using namespace ofxCv;
+//using namespace cv;
+//using namespace std;
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -24,6 +25,8 @@ void ofApp::setup() {
 	gui.add(toggleWebcam.set("Toggle webcam", true));
 	gui.add(toggleContour.set("Toggle contours", true));
 
+	gui.add(connection.set("Connection", false));
+
 	// Webcam Setup
 	webcam.listDevices();
 	webcam.setDeviceID(0);
@@ -34,6 +37,10 @@ void ofApp::setup() {
 	contour1.setMaxAreaRadius(50);
 	contour2.setMinAreaRadius(15);
 	contour2.setMaxAreaRadius(50);
+
+	// OSC Setup
+	oscSender.setup(ip, portTX);
+	oscReceiver.setup(portRX);
 
 	// Startposition Spieler 1 & 2
 	posP1 = ofGetHeight() / 2 - playerHeight / 2;
@@ -210,6 +217,21 @@ void ofApp::update() {
 		ballPosY = ofGetHeight() - ballSize;
 	}
 	//__
+	// Osc Nachricht Senden/Empfangen
+	// Senden
+	oscMessageTX.setAddress("/playerPos");
+	oscMessageTX.addIntArg(posP1);
+	oscSender.sendMessage(oscMessageTX, false);
+	// Empfangen
+	while (oscReceiver.hasWaitingMessages())
+	{
+		oscReceiver.getNextMessage(oscMessageRX);
+
+		if (oscMessageRX.getAddress() == "/playerPos")
+		{
+			posP2 = oscMessageRX.getArgAsInt32(0);
+		}
+	}
 }
 
 //--------------------------------------------------------------

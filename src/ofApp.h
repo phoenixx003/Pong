@@ -1,15 +1,19 @@
 #pragma once
 
 #include "ofMain.h"
+
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
+
 #include "ofxGui.h"
+
 #include "ofxOsc.h"
 
 #include "time.h"
 
 using namespace ofxCv;
 using namespace cv;
+using namespace std;
 
 class ofApp : public ofBaseApp {
 
@@ -61,6 +65,13 @@ public:
 	ofParameter<bool> toggleContour;
 	ofParameter<bool> toggleGui;
 
+	ofParameter<bool> connection;
+
+	ofxOscReceiver oscReceiver;
+	ofxOscSender oscSender;
+	ofxOscMessage oscMessageTX;
+	ofxOscMessage oscMessageRX;
+
 	// Player Dimensionen
 	int playerHeight;
 	int playerWidth;
@@ -78,4 +89,9 @@ public:
 	float ballAngleX;	// Winkel des Spielballvektors x-Achse
 	float ballAngleY;	// Winkel des Spielballvektors y-Achse
 	int signY;			// Vorzeichen des Spielballvektors y-Achse
+
+	// Netzwerkverbindungen
+	int portTX;
+	int portRX;
+	string ip;
 };
