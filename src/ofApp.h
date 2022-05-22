@@ -4,6 +4,7 @@
 
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
+#include "ofParameter.h"
 
 #include "ofxGui.h"
 
@@ -89,6 +90,8 @@ public:
 	float ballAngleX;	// Winkel des Spielballvektors x-Achse
 	float ballAngleY;	// Winkel des Spielballvektors y-Achse
 	int signY;			// Vorzeichen des Spielballvektors y-Achse
+
+	bool startGame;
 
 	// Netzwerkverbindungen
 	int portTX;

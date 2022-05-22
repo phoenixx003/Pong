@@ -1,9 +1,5 @@
 #include "ofApp.h"
 
-//using namespace ofxCv;
-//using namespace cv;
-//using namespace std;
-
 //--------------------------------------------------------------
 void ofApp::setup() {
 	ofSetWindowTitle("Pong");
@@ -30,7 +26,7 @@ void ofApp::setup() {
 	// Webcam Setup
 	webcam.listDevices();
 	webcam.setDeviceID(0);
-	webcam.setup(640, 480);
+	webcam.setup(640, 480);  // Auflösung der Webcam
 
 	// Contour Setup
 	contour1.setMinAreaRadius(15);
@@ -39,8 +35,16 @@ void ofApp::setup() {
 	contour2.setMaxAreaRadius(50);
 
 	// OSC Setup
+	// 
+	// Ziel IP- und Port-Adresse
+	ip = "172.20.10.2";
+	portTX = 12345;
+	// Eigener Port zum Empfangen 
+	portRX = 12346;
+	//
 	oscSender.setup(ip, portTX);
 	oscReceiver.setup(portRX);
+	connection = false;
 
 	// Startposition Spieler 1 & 2
 	posP1 = ofGetHeight() / 2 - playerHeight / 2;
@@ -63,8 +67,11 @@ void ofApp::setup() {
 	ballAngleX = 1.0;
 	ballAngleY = 1.0;
 
-	// Vorzeichen y-Achse
+	// Vorzeichen Ballvektor
 	signY = 1;
+
+	// Variable zum Bewegen des Balls
+	startGame = false;
 
 	// Variablen zum Ein-/Ausblenden
 	toggleWebcam = true;
@@ -110,28 +117,31 @@ void ofApp::update() {
 
 	// Farberkennung und Positionierung von P2
 	//
-	color2.setHueAngle(hue2);
-	color2.setSaturation(sat2);
-	color2.setBrightness(val2);
-
-	contour2.setTargetColor(color2);
-	contour2.setThreshold(threshold2);
-	contour2.findContours(image);
-
-	for (int i = 0; i < contour2.size(); i++)
+	if (!connection) //Dieser Abschnitt wird nur dann benutzt, wenn keine Verbindung zu einem anderen Spieler besteht
 	{
-		centerContour2 = contour2.getCenter(i);
-	}
-	posP2 = (centerContour2.y - playerHeight / 2.0) * 2.8;
+		color2.setHueAngle(hue2);
+		color2.setSaturation(sat2);
+		color2.setBrightness(val2);
 
-	if (posP2 <= 0)
-	{
-		posP2 = 0;
-	}
+		contour2.setTargetColor(color2);
+		contour2.setThreshold(threshold2);
+		contour2.findContours(image);
 
-	if (posP2 >= ofGetWindowHeight() - playerHeight)
-	{
-		posP2 = ofGetWindowHeight() - playerHeight;
+		for (int i = 0; i < contour2.size(); i++)
+		{
+			centerContour2 = contour2.getCenter(i);
+		}
+		posP2 = (centerContour2.y - playerHeight / 2.0) * 2.8;
+
+		if (posP2 <= 0)
+		{
+			posP2 = 0;
+		}
+
+		if (posP2 >= ofGetWindowHeight() - playerHeight)
+		{
+			posP2 = ofGetWindowHeight() - playerHeight;
+		}
 	}
 
 	// Ballphysik
@@ -189,9 +199,16 @@ void ofApp::update() {
 	}
 	//
 	// Ballposition zuweisen
-	ballPosXf = ballPosXf + ballSpeed * ballAngleX;
-	ballPosYf = ballPosYf + ballSpeed * ballAngleY;
-	//
+	if (startGame)
+	{
+		ballPosXf = ballPosXf + ballSpeed * ballAngleX;
+		ballPosYf = ballPosYf + ballSpeed * ballAngleY;
+	}
+	else
+	{
+		ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
+		ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
+	}
 	ballPosX = ballPosXf;
 	ballPosY = ballPosYf;
 	//
@@ -219,17 +236,28 @@ void ofApp::update() {
 	//__
 	// Osc Nachricht Senden/Empfangen
 	// Senden
-	oscMessageTX.setAddress("/playerPos");
+	oscMessageTX.clear();
+
+	oscMessageTX.setAddress("/playerMusa");
+	// Sende eigene Position
 	oscMessageTX.addIntArg(posP1);
+	// Sende Position vom Ball
+	oscMessageTX.addIntArg(ballPosX);
+	oscMessageTX.addIntArg(ballPosY);
+
 	oscSender.sendMessage(oscMessageTX, false);
 	// Empfangen
 	while (oscReceiver.hasWaitingMessages())
 	{
 		oscReceiver.getNextMessage(oscMessageRX);
-
-		if (oscMessageRX.getAddress() == "/playerPos")
+		if (oscMessageRX.getAddress() == "/playerFerhat")
 		{
-			posP2 = oscMessageRX.getArgAsInt32(0);
+			connection = true;
+			posP2 = oscMessageRX.getArgAsInt(0);
+		}
+		else
+		{
+			connection = false;
 		}
 	}
 }
@@ -295,6 +323,10 @@ void ofApp::keyReleased(int key) {
 	if (key == 'g')
 	{
 		toggleGui = !toggleGui;
+	}
+	if (key == ' ')
+	{
+		startGame = !startGame;
 	}
 }
 
