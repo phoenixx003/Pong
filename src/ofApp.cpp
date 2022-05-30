@@ -23,6 +23,8 @@ void ofApp::setup() {
 
 	gui.add(connection.set("Connection", false));
 
+	gui.add(master.set("Master", true));
+
 	// Webcam Setup
 	webcam.listDevices();
 	webcam.setDeviceID(0);
@@ -44,8 +46,12 @@ void ofApp::setup() {
 	//
 	oscSender.setup(ip, portTX);
 	oscReceiver.setup(portRX);
+	//
 	connection = false;
-
+	// Variable "master" muss bei einem Spieler true und beim andere false gesetzt sein;
+	master = false;
+	//___
+	// 
 	// Startposition Spieler 1 & 2
 	posP1 = ofGetHeight() / 2 - playerHeight / 2;
 	posP2 = ofGetHeight() / 2 - playerHeight / 2;
@@ -236,16 +242,26 @@ void ofApp::update() {
 	//__
 	// Osc Nachricht Senden/Empfangen
 	// Senden
+	//
+	// Lösche alle Inhalte der Nachricht
 	oscMessageTX.clear();
 
 	oscMessageTX.setAddress("/playerMusa");
-	// Sende eigene Position
+	// Füge eigene Position zur Nachricht hinzu
 	oscMessageTX.addIntArg(posP1);
-	// Sende Position vom Ball
-	oscMessageTX.addIntArg(ballPosX);
-	oscMessageTX.addIntArg(ballPosY);
 
+	// Füge Farbe vom P1 zur Nachricht hinzu 
+	oscMessageTX.addRgbaColorArg(color1.getHex());
+
+	// Füge Position vom Ball zur Nachricht hinzu
+	if (master)
+	{
+		oscMessageTX.addIntArg(ballPosX);
+		oscMessageTX.addIntArg(ballPosY);
+	}
+	// Sende Nachricht
 	oscSender.sendMessage(oscMessageTX, false);
+
 	// Empfangen
 	while (oscReceiver.hasWaitingMessages())
 	{
@@ -253,7 +269,13 @@ void ofApp::update() {
 		if (oscMessageRX.getAddress() == "/playerFerhat")
 		{
 			connection = true;
-			posP2 = oscMessageRX.getArgAsInt(0);
+			posP2 = oscMessageRX.getArgAsInt(0);  // Position von P2 zuweisen
+			color2 = oscMessageRX.getArgAsRgbaColor(1); // Farbe des Gegners zuweisen
+			if (!master)
+			{
+				ballAngleX = oscMessageRX.getArgAsInt(2); // Position des Balls zuweisen (X-Achse)
+				ballAngleY = oscMessageRX.getArgAsInt(3); // Position des Balls zuweisen (Y-Achse)
+			}
 		}
 		else
 		{
@@ -266,7 +288,7 @@ void ofApp::update() {
 void ofApp::draw() {
 	if (toggleWebcam)
 	{
-		image.draw(0, 0);
+		image.draw(0,0);
 	}
 
 	if (toggleGui)

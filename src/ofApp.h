@@ -67,6 +67,7 @@ public:
 	ofParameter<bool> toggleGui;
 
 	ofParameter<bool> connection;
+	ofParameter<bool> master;
 
 	ofxOscReceiver oscReceiver;
 	ofxOscSender oscSender;
