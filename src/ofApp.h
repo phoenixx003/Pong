@@ -5,12 +5,14 @@
 #include "ofxCv.h"
 #include "ofxOpenCv.h"
 #include "ofParameter.h"
-
 #include "ofxGui.h"
-
 #include "ofxOsc.h"
 
 #include "time.h"
+#include <cstdlib>
+
+const float FHD_WIDTH = 1280.0;
+const float FHD_HEIGHT = 720.0;
 
 using namespace ofxCv;
 using namespace cv;
@@ -38,6 +40,8 @@ public:
 	ofVideoGrabber webcam;
 
 	ofxPanel gui;
+
+	ofxLabel labelConnection;
 
 	ofxCvColorImage image;
 	ofPixels pixel;
@@ -94,8 +98,16 @@ public:
 
 	bool startGame;
 
+	// Normierung
+	float widthNorm;
+	float heightNorm;
+
 	// Netzwerkverbindungen
 	int portTX;
 	int portRX;
 	string ip;
-};
+
+	// Timer Spezifikationen
+	ofParameter<float> timeToWait;
+	float timer;
+	};

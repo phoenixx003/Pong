@@ -7,6 +7,9 @@ void ofApp::setup() {
 	// GUI Setup
 	//
 	gui.setup();
+	gui.setSize(300, 0);
+	gui.setPosition(641, 0);
+	gui.setName("GUI");
 	gui.add(threshold1.set("Threshold1", 20, 0, 255));
 	gui.add(threshold2.set("Threshold2", 20, 0, 255));
 
@@ -21,9 +24,9 @@ void ofApp::setup() {
 	gui.add(toggleWebcam.set("Toggle webcam", true));
 	gui.add(toggleContour.set("Toggle contours", true));
 
-	gui.add(connection.set("Connection", false));
-
 	gui.add(master.set("Master", true));
+	labelConnection = "No Connection";
+	gui.add(labelConnection.setup("Connection Status", labelConnection));
 
 	// Webcam Setup
 	webcam.listDevices();
@@ -31,30 +34,27 @@ void ofApp::setup() {
 	webcam.setup(640, 480);  // Auflösung der Webcam
 
 	// Contour Setup
-	contour1.setMinAreaRadius(15);
-	contour1.setMaxAreaRadius(50);
-	contour2.setMinAreaRadius(15);
-	contour2.setMaxAreaRadius(50);
+	contour1.setMinAreaRadius(1);
+	contour1.setMaxAreaRadius(640);
+	contour2.setMinAreaRadius(1);
+	contour2.setMaxAreaRadius(640);
 
 	// OSC Setup
 	// 
 	// Ziel IP- und Port-Adresse
-	ip = "172.20.10.2";
-	portTX = 12345;
+	ip = "192.168.178.105";
+	portTX = 12347;
 	// Eigener Port zum Empfangen 
 	portRX = 12346;
 	//
 	oscSender.setup(ip, portTX);
 	oscReceiver.setup(portRX);
-	//
 	connection = false;
-	// Variable "master" muss bei einem Spieler true und beim andere false gesetzt sein;
-	master = false;
 	//___
 	// 
 	// Startposition Spieler 1 & 2
-	posP1 = ofGetHeight() / 2 - playerHeight / 2;
-	posP2 = ofGetHeight() / 2 - playerHeight / 2;
+	posP1 = FHD_HEIGHT / 2 - playerHeight / 2;
+	posP2 = FHD_HEIGHT / 2 - playerHeight / 2;
 
 	// Spielergröße und Abstand zum Rand
 	playerHeight = 150;
@@ -62,8 +62,8 @@ void ofApp::setup() {
 	playerSpacing = 10;
 
 	// Startposition Ball
-	ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
-	ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
+	ballPosXf = FHD_WIDTH / 2.0 - ballSize / 2.0;
+	ballPosYf = FHD_HEIGHT / 2.0 - ballSize / 2.0;
 
 	// Ballgröße
 	ballSize = 10;
@@ -85,6 +85,9 @@ void ofApp::setup() {
 	toggleGui = true;
 
 	srand((unsigned)time(NULL));
+
+	// Timer Setup
+	timeToWait = 5.0;     // 5 Sekunden
 }
 
 //--------------------------------------------------------------
@@ -94,6 +97,11 @@ void ofApp::update() {
 	webcam.update();					
 	webcam.getPixels().mirrorTo(pixel, false, true);
 	image = pixel;
+
+	// Berechnung der Normalen
+	//
+	widthNorm = ofGetWidth() / FHD_WIDTH;
+	heightNorm = ofGetHeight()  / FHD_HEIGHT;
 
 	// Farberkennung und Positionierung von P1
 	//
@@ -105,25 +113,28 @@ void ofApp::update() {
 	contour1.setThreshold(threshold1);
 	contour1.findContours(image);
 
+	// magical For-Loop
 	for (int i = 0; i < contour1.size(); i++)
 	{
 		centerContour1 = contour1.getCenter(i);
 	}
-	posP1 = (centerContour1.y - playerHeight / 2.0) * 2.8;
+	// Zuweisung Position von Player1 anhang der Mitte der gefundenen Kontur mit zusätzlicher Skalierung von WebcamBild auf Fenstergröße
+	posP1 = (centerContour1.y - playerHeight / 2.0) * FHD_HEIGHT / 480.0;
 
 	if (posP1 <= 0)
 	{
 		posP1 = 0;
 	}
 
-	if (posP1 >= ofGetWindowHeight() - playerHeight)
+	if (posP1 >= FHD_HEIGHT - playerHeight)
 	{
-		posP1 = ofGetWindowHeight() - playerHeight;
+		posP1 = FHD_HEIGHT - playerHeight;
 	}
 
 	// Farberkennung und Positionierung von P2
 	//
-	if (!connection) //Dieser Abschnitt wird nur dann benutzt, wenn keine Verbindung zu einem anderen Spieler besteht
+	//Dieser Abschnitt wird nur dann benutzt, wenn keine Verbindung zu einem anderen Spieler besteht
+	if (!connection) 
 	{
 		color2.setHueAngle(hue2);
 		color2.setSaturation(sat2);
@@ -137,16 +148,16 @@ void ofApp::update() {
 		{
 			centerContour2 = contour2.getCenter(i);
 		}
-		posP2 = (centerContour2.y - playerHeight / 2.0) * 2.8;
+		posP2 = (centerContour2.y - playerHeight / 2.0) * FHD_HEIGHT / 480.0;
 
 		if (posP2 <= 0)
 		{
 			posP2 = 0;
 		}
 
-		if (posP2 >= ofGetWindowHeight() - playerHeight)
+		if (posP2 >= FHD_HEIGHT - playerHeight)
 		{
-			posP2 = ofGetWindowHeight() - playerHeight;
+			posP2 = FHD_HEIGHT - playerHeight;
 		}
 	}
 
@@ -164,7 +175,7 @@ void ofApp::update() {
 		ballSpeed = ballSpeed ++;
 	}
 	// Ball trifft auf Spieler 2
-	if ((ballPosX == (ofGetWidth() - playerSpacing - playerWidth - ballSize)) && (ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight)))
+	if ((ballPosX == (FHD_WIDTH - playerSpacing - playerWidth - ballSize)) && (ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight)))
 	{
 		signY = -signY;
 		ballAngleY = signY * ((float)rand() / RAND_MAX);
@@ -179,22 +190,22 @@ void ofApp::update() {
 	if ((ballPosX == (playerSpacing + playerWidth)) && !((ballPosY >= posP1) && (ballPosY <= (posP1 + playerHeight))))
 	{
 		// GameOver
-		ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
-		ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
+		ballPosXf = FHD_WIDTH / 2.0 - ballSize / 2.0;
+		ballPosYf = FHD_HEIGHT / 2.0 - ballSize / 2.0;
 
 		ballSpeed = 10;
 	}
 	// Spieler 2 GameOver
-	if ((ballPosX == (ofGetWidth() - playerSpacing - playerWidth - ballSize)) && !((ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight))))
+	if ((ballPosX == (FHD_WIDTH - playerSpacing - playerWidth - ballSize)) && !((ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight))))
 	{
-		ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
-		ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
+		ballPosXf = FHD_WIDTH / 2.0 - ballSize / 2.0;
+		ballPosYf = FHD_HEIGHT / 2.0 - ballSize / 2.0;
 
 		ballSpeed = 10;
 	}
 	//
 	// Ball trifft auf oberen/unteren Rand
-	if (ballPosY >= ofGetHeight() - ballSize)
+	if (ballPosY >= FHD_HEIGHT - ballSize)
 	{
 		ballAngleY = -ballAngleY;
 	}
@@ -205,18 +216,21 @@ void ofApp::update() {
 	}
 	//
 	// Ballposition zuweisen
-	if (startGame)
+	if ((startGame && !connection) || (startGame && connection && master))
 	{
 		ballPosXf = ballPosXf + ballSpeed * ballAngleX;
 		ballPosYf = ballPosYf + ballSpeed * ballAngleY;
+		ballPosX = ballPosXf;
+		ballPosY = ballPosYf;
 	}
-	else
+	else if ((!startGame && connection && master) || (!startGame && !connection))
 	{
-		ballPosXf = ofGetWidth() / 2.0 - ballSize / 2.0;
-		ballPosYf = ofGetHeight() / 2.0 - ballSize / 2.0;
+		ballPosXf = FHD_WIDTH / 2.0 - ballSize / 2.0;
+		ballPosYf = FHD_HEIGHT / 2.0 - ballSize / 2.0;
+		ballPosX = ballPosXf;
+		ballPosY = ballPosYf;
 	}
-	ballPosX = ballPosXf;
-	ballPosY = ballPosYf;
+	//
 	//
 	// X-Korrektur
 	if (ballPosX < playerSpacing + playerWidth)
@@ -224,9 +238,9 @@ void ofApp::update() {
 		ballPosX = playerSpacing + playerWidth;
 	}
 
-	if (ballPosX > ofGetWidth() - playerSpacing - playerWidth - ballSize)
+	if (ballPosX > FHD_WIDTH - playerSpacing - playerWidth - ballSize)
 	{
-		ballPosX = ofGetWidth() - playerSpacing - playerWidth - ballSize;
+		ballPosX = FHD_WIDTH - playerSpacing - playerWidth - ballSize;
 	}
 	//
 	// Y-Korrektur
@@ -235,9 +249,9 @@ void ofApp::update() {
 		ballPosY = 0;
 	}
 
-	if (ballPosY > ofGetHeight() - ballSize)
+	if (ballPosY > FHD_HEIGHT - ballSize)
 	{
-		ballPosY = ofGetHeight() - ballSize;
+		ballPosY = FHD_HEIGHT - ballSize;
 	}
 	//__
 	// Osc Nachricht Senden/Empfangen
@@ -245,41 +259,71 @@ void ofApp::update() {
 	//
 	// Lösche alle Inhalte der Nachricht
 	oscMessageTX.clear();
-
-	oscMessageTX.setAddress("/playerMusa");
+	// Setze eigene Adresse, welche der Gegner als oscMessageRX.getAdress(" ") benutzen muss 
+	oscMessageTX.setAddress("/playerA");
 	// Füge eigene Position zur Nachricht hinzu
 	oscMessageTX.addIntArg(posP1);
 
-	// Füge Farbe vom P1 zur Nachricht hinzu 
-	oscMessageTX.addRgbaColorArg(color1.getHex());
-
-	// Füge Position vom Ball zur Nachricht hinzu
+	// Füge Position vom Ball zur Nachricht hinzu wenn Master
 	if (master)
 	{
 		oscMessageTX.addIntArg(ballPosX);
 		oscMessageTX.addIntArg(ballPosY);
 	}
+
+	// Füge Farbe vom P1 zur Nachricht hinzu
+	oscMessageTX.addIntArg(color1.getHueAngle());
+	oscMessageTX.addIntArg(color1.getSaturation());
+	oscMessageTX.addIntArg(color1.getBrightness());
+
 	// Sende Nachricht
-	oscSender.sendMessage(oscMessageTX, false);
+	oscSender.sendMessage(oscMessageTX, true);
 
 	// Empfangen
+	if (oscReceiver.hasWaitingMessages())
+	{
+		labelConnection = "Connected!";
+		connection = true;
+		ofResetElapsedTimeCounter();
+		timer = ofGetElapsedTimef();
+	}
+	else if ((oscReceiver.hasWaitingMessages() == false) && (timer >= timeToWait))
+	{
+		labelConnection = "No Connection";
+		connection = false;
+	}
+	else if (!oscReceiver.hasWaitingMessages())
+	{
+		timer = ofGetElapsedTimef();
+	}
+
 	while (oscReceiver.hasWaitingMessages())
 	{
 		oscReceiver.getNextMessage(oscMessageRX);
-		if (oscMessageRX.getAddress() == "/playerFerhat")
+		// Adresse vom Gegner einsetzen, welcher in oscMessageTX.setAdress(" ") benutzt wurde
+		if (oscMessageRX.getAddress() == "/playerB")
 		{
-			connection = true;
 			posP2 = oscMessageRX.getArgAsInt(0);  // Position von P2 zuweisen
-			color2 = oscMessageRX.getArgAsRgbaColor(1); // Farbe des Gegners zuweisen
+
 			if (!master)
 			{
-				ballAngleX = oscMessageRX.getArgAsInt(2); // Position des Balls zuweisen (X-Achse)
-				ballAngleY = oscMessageRX.getArgAsInt(3); // Position des Balls zuweisen (Y-Achse)
+				ballPosX = FHD_WIDTH - oscMessageRX.getArgAsInt(1); // Position des Balls zuweisen (X-Achse)
+				ballPosY = oscMessageRX.getArgAsInt(2); // Position des Balls zuweisen (Y-Achse)
 			}
-		}
-		else
-		{
-			connection = false;
+
+			// Farbe des Gegners zuweisen
+			if (master)
+			{
+				color2.setHueAngle(oscMessageRX.getArgAsInt(1));
+				color2.setSaturation(oscMessageRX.getArgAsInt(2));
+				color2.setBrightness(oscMessageRX.getArgAsInt(3));
+			}
+			else
+			{
+				color2.setHueAngle(oscMessageRX.getArgAsInt(3));
+				color2.setSaturation(oscMessageRX.getArgAsInt(4));
+				color2.setBrightness(oscMessageRX.getArgAsInt(5));
+			}
 		}
 	}
 }
@@ -303,13 +347,13 @@ void ofApp::draw() {
 	}
 
 	ofSetColor(color1);
-	ofDrawRectangle(playerSpacing, posP1, playerWidth, playerHeight);
+	ofDrawRectangle((playerSpacing * widthNorm), (posP1 * heightNorm), (playerWidth * widthNorm), (playerHeight * heightNorm));
 
 	ofSetColor(color2);
-	ofDrawRectangle(ofGetWidth() - playerWidth - playerSpacing, posP2, playerWidth, playerHeight);
+	ofDrawRectangle((FHD_WIDTH * widthNorm) - (playerWidth * widthNorm) - (playerSpacing * widthNorm), (posP2 * heightNorm), (playerWidth * widthNorm), (playerHeight * heightNorm));
 
 	ofSetColor(ofColor::white);
-	ofDrawRectangle(ballPosX, ballPosY, ballSize, ballSize);
+	ofDrawRectangle((ballPosX * widthNorm), (ballPosY * heightNorm), (ballSize * widthNorm), (ballSize * heightNorm));
 	//ofDrawCircle(ballPosX, ballPosY, ballSize);  // runder Ball
 }
 
@@ -389,7 +433,7 @@ void ofApp::windowResized(int w, int h) {
 
 //--------------------------------------------------------------
 void ofApp::gotMessage(ofMessage msg) {
-
+	
 }
 
 //--------------------------------------------------------------
