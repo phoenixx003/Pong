@@ -4,6 +4,9 @@
 void ofApp::setup() {
 	ofSetWindowTitle("Pong");
 
+	ofSetFrameRate(60);
+	ofSetVerticalSync(true);
+
 	// GUI Setup
 	//
 	gui.setup();
@@ -12,6 +15,8 @@ void ofApp::setup() {
 	gui.setName("GUI");
 	gui.add(threshold1.set("Threshold1", 20, 0, 255));
 	gui.add(threshold2.set("Threshold2", 20, 0, 255));
+	gui.add(minRadius.set("Contour Minimum Radius", 5, 0, 640));
+	gui.add(maxRadius.set("Contour Maximum Radius", 640, 0, 640));
 
 	gui.add(hue1.set("Hue 1", 0, 0, 360));
 	gui.add(sat1.set("Saturation 1", 0, 0, 255));
@@ -34,15 +39,15 @@ void ofApp::setup() {
 	webcam.setup(640, 480);  // Auflösung der Webcam
 
 	// Contour Setup
-	contour1.setMinAreaRadius(1);
-	contour1.setMaxAreaRadius(640);
-	contour2.setMinAreaRadius(1);
-	contour2.setMaxAreaRadius(640);
+	contour1.setMinAreaRadius(minRadius);
+	contour1.setMaxAreaRadius(maxRadius);
+	contour2.setMinAreaRadius(minRadius);
+	contour2.setMaxAreaRadius(maxRadius);
 
 	// OSC Setup
 	// 
 	// Ziel IP- und Port-Adresse
-	ip = "192.168.178.105";
+	ip = "172.20.10.3";
 	portTX = 12347;
 	// Eigener Port zum Empfangen 
 	portRX = 12346;
@@ -105,6 +110,11 @@ void ofApp::update() {
 
 	// Farberkennung und Positionierung von P1
 	//
+	contour1.setMinAreaRadius(minRadius);
+	contour1.setMaxAreaRadius(maxRadius);
+	contour2.setMinAreaRadius(minRadius);
+	contour2.setMaxAreaRadius(maxRadius);
+
 	color1.setHueAngle(hue1);
 	color1.setSaturation(sat1);
 	color1.setBrightness(val1);
@@ -345,16 +355,20 @@ void ofApp::draw() {
 		contour1.draw();
 		contour2.draw();
 	}
-
+	// Zeichne Player 1
 	ofSetColor(color1);
 	ofDrawRectangle((playerSpacing * widthNorm), (posP1 * heightNorm), (playerWidth * widthNorm), (playerHeight * heightNorm));
 
+	// Zeichne Player
 	ofSetColor(color2);
 	ofDrawRectangle((FHD_WIDTH * widthNorm) - (playerWidth * widthNorm) - (playerSpacing * widthNorm), (posP2 * heightNorm), (playerWidth * widthNorm), (playerHeight * heightNorm));
 
+	// Zeichne Ball
 	ofSetColor(ofColor::white);
 	ofDrawRectangle((ballPosX * widthNorm), (ballPosY * heightNorm), (ballSize * widthNorm), (ballSize * heightNorm));
 	//ofDrawCircle(ballPosX, ballPosY, ballSize);  // runder Ball
+
+	ofDrawBitmapString(ofToString(ofGetFrameRate()), 10, 10);
 }
 
 //--------------------------------------------------------------

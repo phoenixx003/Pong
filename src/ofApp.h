@@ -63,6 +63,8 @@ public:
 	ofParameter<float> sat2;
 	ofParameter<float> val2;
 
+	ofParameter<float> minRadius;
+	ofParameter<float> maxRadius;
 	ofParameter<float> threshold1;
 	ofParameter<float> threshold2;
 
