@@ -4,7 +4,8 @@
 void ofApp::setup() {
 	ofSetWindowTitle("Pong");
 
-	ofSetFrameRate(60);
+	// Setze die Framerate auf 30 FPS
+	ofSetFrameRate(30);
 	ofSetVerticalSync(true);
 
 	// GUI Setup
@@ -17,7 +18,7 @@ void ofApp::setup() {
 	gui.add(threshold2.set("Threshold2", 20, 0, 255));
 	gui.add(minRadius.set("Contour Minimum Radius", 5, 0, 640));
 	gui.add(maxRadius.set("Contour Maximum Radius", 640, 0, 640));
-
+	
 	gui.add(hue1.set("Hue 1", 0, 0, 360));
 	gui.add(sat1.set("Saturation 1", 0, 0, 255));
 	gui.add(val1.set("Value 1", 0, 0, 255));
@@ -32,6 +33,12 @@ void ofApp::setup() {
 	gui.add(master.set("Master", true));
 	labelConnection = "No Connection";
 	gui.add(labelConnection.setup("Connection Status", labelConnection));
+	
+	gui.add(ip.set("IP: ", ""));
+	gui.add(portTX.set("Port zum Senden: ", ""));
+	gui.add(portRX.set("Port zum Empfangen: ", ""));
+	gui.add(myAdress.set("My Adress: ", ""));
+	gui.add(opponentAdress.set("Opponent Adress: ", ""));
 
 	// Webcam Setup
 	webcam.listDevices();
@@ -46,14 +53,16 @@ void ofApp::setup() {
 
 	// OSC Setup
 	// 
-	// Ziel IP- und Port-Adresse
+	// Ziel IP, Port und Addresse zum Senden
 	ip = "172.20.10.3";
-	portTX = 12347;
-	// Eigener Port zum Empfangen 
-	portRX = 12346;
+	portTX = "100";
+	opponentAdress = "/playerB";
+	// Eigener Port und Addresse zum Empfangen
+	portRX = "101";
+	myAdress = "/playerA";
 	//
-	oscSender.setup(ip, portTX);
-	oscReceiver.setup(portRX);
+	oscSender.setup(ip, ofToInt(portTX));
+	oscReceiver.setup(ofToInt(portRX));
 	connection = false;
 	//___
 	// 
@@ -99,14 +108,14 @@ void ofApp::setup() {
 void ofApp::update() {
 	// Webcam Update
 	//
-	webcam.update();					
+	webcam.update();
 	webcam.getPixels().mirrorTo(pixel, false, true);
 	image = pixel;
 
 	// Berechnung der Normalen
 	//
 	widthNorm = ofGetWidth() / FHD_WIDTH;
-	heightNorm = ofGetHeight()  / FHD_HEIGHT;
+	heightNorm = ofGetHeight() / FHD_HEIGHT;
 
 	// Farberkennung und Positionierung von P1
 	//
@@ -144,7 +153,7 @@ void ofApp::update() {
 	// Farberkennung und Positionierung von P2
 	//
 	//Dieser Abschnitt wird nur dann benutzt, wenn keine Verbindung zu einem anderen Spieler besteht
-	if (!connection) 
+	if (!connection)
 	{
 		color2.setHueAngle(hue2);
 		color2.setSaturation(sat2);
@@ -182,8 +191,9 @@ void ofApp::update() {
 		ballAngleY = signY * ((float)rand() / RAND_MAX);
 		ballAngleX = -ballAngleX;
 
-		ballSpeed = ballSpeed ++;
+		ballSpeed = ballSpeed++;
 	}
+
 	// Ball trifft auf Spieler 2
 	if ((ballPosX == (FHD_WIDTH - playerSpacing - playerWidth - ballSize)) && (ballPosY >= posP2) && (ballPosY <= (posP2 + playerHeight)))
 	{
@@ -191,7 +201,7 @@ void ofApp::update() {
 		ballAngleY = signY * ((float)rand() / RAND_MAX);
 		ballAngleX = -ballAngleX;
 
-		ballSpeed = ballSpeed ++;
+		ballSpeed = ballSpeed++;
 	}
 	//
 	// Ball geht ins aus
@@ -267,10 +277,22 @@ void ofApp::update() {
 	// Osc Nachricht Senden/Empfangen
 	// Senden
 	//
+	// Update Sender und Receiver wenn sich Daten ändern
+	if ((ofToString(ipAlt) != ofToString(ip)) || (ofToString(portTXalt) != ofToString(portTX)))
+	{
+		oscSender.setup(ip, ofToInt(portTX));
+	}
+	ipAlt = ip;
+	portTXalt = portTX;
+	if (ofToString(portRX) != ofToString(portRXalt))
+	{
+		oscReceiver.setup(ofToInt(portRX));
+	}
+	portRXalt = portRX;
 	// Lösche alle Inhalte der Nachricht
 	oscMessageTX.clear();
 	// Setze eigene Adresse, welche der Gegner als oscMessageRX.getAdress(" ") benutzen muss 
-	oscMessageTX.setAddress("/playerA");
+	oscMessageTX.setAddress(myAdress);
 	// Füge eigene Position zur Nachricht hinzu
 	oscMessageTX.addIntArg(posP1);
 
@@ -311,7 +333,7 @@ void ofApp::update() {
 	{
 		oscReceiver.getNextMessage(oscMessageRX);
 		// Adresse vom Gegner einsetzen, welcher in oscMessageTX.setAdress(" ") benutzt wurde
-		if (oscMessageRX.getAddress() == "/playerB")
+		if (oscMessageRX.getAddress() == ofToString(opponentAdress))
 		{
 			posP2 = oscMessageRX.getArgAsInt(0);  // Position von P2 zuweisen
 
@@ -366,9 +388,9 @@ void ofApp::draw() {
 	// Zeichne Ball
 	ofSetColor(ofColor::white);
 	ofDrawRectangle((ballPosX * widthNorm), (ballPosY * heightNorm), (ballSize * widthNorm), (ballSize * heightNorm));
-	//ofDrawCircle(ballPosX, ballPosY, ballSize);  // runder Ball
 
-	ofDrawBitmapString(ofToString(ofGetFrameRate()), 10, 10);
+	// Zeichne Framerate
+	ofDrawBitmapString("FPS: "+ofToString(ofGetFrameRate()), 10, 10);
 }
 
 //--------------------------------------------------------------

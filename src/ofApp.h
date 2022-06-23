@@ -105,11 +105,19 @@ public:
 	float heightNorm;
 
 	// Netzwerkverbindungen
-	int portTX;
-	int portRX;
-	string ip;
+	ofParameter<string> portTX;
+	ofParameter<string> portTXalt;
+
+	ofParameter<string> portRX;
+	ofParameter<string> portRXalt;
+
+	ofParameter<string> ip;
+	ofParameter<string> ipAlt;
+
+	ofParameter<string> myAdress;
+	ofParameter<string> opponentAdress;
 
 	// Timer Spezifikationen
 	ofParameter<float> timeToWait;
 	float timer;
-	};
+};
